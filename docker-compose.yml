@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: circles
+      POSTGRES_PASSWORD: circles
+      POSTGRES_DB: circles
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      CRYPTOBOT_TOKEN: ${CRYPTOBOT_TOKEN:-}
+      ADMIN_IDS: ${ADMIN_IDS}
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  pgdata:
