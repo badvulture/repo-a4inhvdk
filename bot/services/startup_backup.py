@@ -81,16 +81,11 @@ async def send_startup_backup(bot: Bot) -> None:
             text="🤖 Бот успешно запущен!",
             disable_notification=True,
         )
+        if not config.startup_backup_enabled:
+            return
 
         os.makedirs(_BACKUP_DIR, exist_ok=True)
         files: list[tuple[str, str]] = []
-
-        # config
-        config_zip = f"{_BACKUP_DIR}/config.zip"
-        with zipfile.ZipFile(config_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
-            if os.path.exists("config.py"):
-                zipf.write("config.py", "config.py")
-        files.append((config_zip, "📂 Текущий конфиг"))
 
         files.append((
             await _dump_zip(f"{_BACKUP_DIR}/users.zip", "users.sql", "users"),

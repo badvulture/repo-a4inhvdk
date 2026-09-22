@@ -155,6 +155,7 @@ RU = {
     "btn_pay_stars_go": "⭐ Оплатить Stars",
     "btn_pay_cryptobot_go": "💵Оплатить",
     "payment_create_error": "❌ Не удалось создать платёж. Попробуй позже или выбери другой способ.",
+    "offer_invalid": "❌ Неверная сумма, выбери пакет заново.",
     "card_auto": (
         "<b>💳 Оплата картой</b>\n\n"
         "📦 <b>Товар:</b> {coins} 🪙\n"
@@ -516,6 +517,7 @@ EN = {
     "btn_pay_stars_go": "⭐ Pay with Stars",
     "btn_pay_cryptobot_go": "💵Pay",
     "payment_create_error": "❌ Cannot create the payment. Try later or choose another method.",
+    "offer_invalid": "❌ Invalid amount, please pick a pack again.",
     "card_auto": (
         "<b>💳 Card payment</b>\n\n"
         "📦 <b>Product:</b> {coins} 🪙\n"

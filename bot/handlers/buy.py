@@ -1,3 +1,4 @@
+import logging
 import math
 import secrets
 import string
@@ -23,6 +24,8 @@ from bot.services.rates import format_crypto, rub_to_crypto, rub_to_usd
 
 router = Router()
 
+log = logging.getLogger(__name__)
+
 _CODE_ALPHABET = string.ascii_letters + string.digits
 
 
@@ -37,6 +40,25 @@ MIN_CARD_RUB = 50
 def custom_price_rub(coins: int) -> int:
     factor = 2.0 if coins < 150 else 1.5
     return max(1, math.ceil(coins * factor))
+
+
+async def _parse_offer(
+    cb: CallbackQuery, session: AsyncSession, lang: str, coins: str, rub: str
+) -> tuple[int, int] | None:
+    """Never trust coins/rub from callback data: it must match a configured
+    pack or the computed custom price."""
+    try:
+        c, r = int(coins), int(rub)
+    except ValueError:
+        c = r = -1
+    packs = await get_setting(session, "coin_packs")  # {str(coins): rub}
+    ok = (str(c) in packs and int(packs[str(c)]) == r) or (
+        10 <= c <= 50000 and custom_price_rub(c) == r
+    )
+    if not ok:
+        await cb.answer(t(lang, "offer_invalid"), show_alert=True)
+        return None
+    return c, r
 
 
 async def price_str(lang: str, rub: int) -> str:
@@ -133,8 +155,12 @@ async def _method_view(lang: str, coins: int | str, rub: int | str):
 
 
 @router.callback_query(F.data.startswith("buy:pack:"))
-async def choose_method(cb: CallbackQuery, lang: str):
+async def choose_method(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     text, kb = await _method_view(lang, coins, rub)
     await smart_edit(cb.message, text, reply_markup=kb)
     await cb.answer()
@@ -143,8 +169,12 @@ async def choose_method(cb: CallbackQuery, lang: str):
 # ---------- CryptoBot ----------
 
 @router.callback_query(F.data.startswith("buy:crypto:"))
-async def pay_crypto(cb: CallbackQuery, lang: str):
+async def pay_crypto(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     kb = InlineKeyboardBuilder()
     for symbol in ("USDT", "TON", "BTC", "ETH"):
         kb.button(text=symbol, callback_data=f"buy:cbc:{symbol}:{coins}:{rub}")
@@ -161,7 +191,11 @@ async def pay_crypto_currency(
     cb: CallbackQuery, session: AsyncSession, user: User, lang: str
 ):
     _, _, symbol, coins, rub = cb.data.split(":")
-    amount = await rub_to_crypto(int(rub), symbol)
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
+    amount = await rub_to_crypto(rub, symbol)
     if amount <= 0:
         await cb.answer(
             "❌ Не удалось получить курс" if lang == "ru" else "❌ Failed to get exchange rate",
@@ -220,6 +254,10 @@ async def pay_card(
     cb: CallbackQuery, state: FSMContext, session: AsyncSession, user: User, lang: str
 ):
     _, _, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     if config.card_payment_method == "yookassa" and config.yookassa_enabled:
         payment_id, url = await yookassa.create_payment(
             float(rub),
@@ -230,7 +268,7 @@ async def pay_card(
             await cb.answer(t(lang, "payment_create_error"), show_alert=True)
             return
         payment = Payment(
-            user_id=user.id, method="yookassa", coins=int(coins), amount_rub=int(rub),
+            user_id=user.id, method="yookassa", coins=coins, amount_rub=rub,
             external_id=payment_id,
         )
         session.add(payment)
@@ -241,7 +279,7 @@ async def pay_card(
         kb.adjust(1)
         await smart_edit(
             cb.message,
-            t(lang, "card_auto", coins=coins, price=await price_str(lang, int(rub))),
+            t(lang, "card_auto", coins=coins, price=await price_str(lang, rub)),
             reply_markup=kb.as_markup(),
         )
         await cb.answer()
@@ -250,8 +288,12 @@ async def pay_card(
 
 
 @router.callback_query(F.data.startswith("buy:cardm:"))
-async def pay_card_semi(cb: CallbackQuery, lang: str):
+async def pay_card_semi(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     await _card_semi(cb, lang, coins, rub)
 
 
@@ -291,8 +333,12 @@ async def check_yookassa(cb: CallbackQuery, session: AsyncSession, user: User, l
 # ---------- SBP transfer + receipt ----------
 
 @router.callback_query(F.data.startswith("buy:sbp:"))
-async def pay_sbp(cb: CallbackQuery, lang: str):
+async def pay_sbp(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     await _show_receipt_method(
         cb,
         lang,
@@ -325,10 +371,16 @@ async def _show_receipt_method(
 
 
 @router.callback_query(F.data.startswith("buy:ipaid:"))
-async def i_paid(cb: CallbackQuery, state: FSMContext, lang: str):
+async def i_paid(
+    cb: CallbackQuery, state: FSMContext, session: AsyncSession, lang: str
+):
     _, _, method, coins, rub = cb.data.split(":")
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
     await state.set_state(BuyStates.manual_screenshot)
-    await state.update_data(coins=int(coins), rub=int(rub), method=method)
+    await state.update_data(coins=coins, rub=rub, method=method)
     await smart_edit(cb.message, t(lang, "payment_photo_instruction"))
     await cb.answer()
 
@@ -336,9 +388,13 @@ async def i_paid(cb: CallbackQuery, state: FSMContext, lang: str):
 # ---------- Telegram Stars ----------
 
 @router.callback_query(F.data.startswith("buy:stars:"))
-async def pay_stars(cb: CallbackQuery, lang: str):
+async def pay_stars(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
-    usd = await rub_to_usd(int(rub))
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
+    usd = await rub_to_usd(rub)
     stars = max(1, math.ceil(usd / config.star_usd))
     kb = InlineKeyboardBuilder()
     kb.button(
@@ -355,15 +411,27 @@ async def pay_stars(cb: CallbackQuery, lang: str):
 
 
 @router.callback_query(F.data.startswith("buy:starsgo:"))
-async def pay_stars_go(cb: CallbackQuery, lang: str, bot: Bot):
+async def pay_stars_go(
+    cb: CallbackQuery, session: AsyncSession, user: User, lang: str, bot: Bot
+):
     _, _, coins, rub = cb.data.split(":")
-    usd = await rub_to_usd(int(rub))
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
+    usd = await rub_to_usd(rub)
     stars = max(1, math.ceil(usd / config.star_usd))
+    payment = Payment(
+        user_id=user.id, method="stars", coins=coins, amount_rub=rub,
+        status="pending",
+    )
+    session.add(payment)
+    await session.commit()
     await bot.send_invoice(
         chat_id=cb.message.chat.id,
         title=f"{coins} 🪙",
-        description=t(lang, "pack_btn", coins=coins, price=await price_str(lang, int(rub))),
-        payload=f"coins:{coins}",
+        description=t(lang, "pack_btn", coins=coins, price=await price_str(lang, rub)),
+        payload=f"pay:{payment.id}",
         currency="XTR",
         prices=[LabeledPrice(label=f"{coins} coins", amount=stars)],
     )
@@ -378,23 +446,43 @@ async def pre_checkout(query: PreCheckoutQuery):
 @router.message(F.successful_payment)
 async def stars_paid(message: Message, session: AsyncSession, user: User, lang: str):
     payload = message.successful_payment.invoice_payload
-    if payload.startswith("coins:"):
-        coins = int(payload.split(":")[1])
-        user.balance += coins
-        session.add(Payment(user_id=user.id, method="stars", coins=coins, status="paid",
-                            external_id=message.successful_payment.telegram_payment_charge_id))
-        session.add(Purchase(user_id=user.id, kind="coins",
-                             description=f"Stars: +{coins}", amount_coins=coins))
-        await session.commit()
-        await message.answer(t(lang, "payment_success", coins=coins))
+    charge_id = message.successful_payment.telegram_payment_charge_id
+    if not payload.startswith("pay:"):
+        log.warning("unknown stars payload: %r", payload)
+        return
+    try:
+        payment = await session.get(Payment, int(payload.split(":", 1)[1]))
+    except ValueError:
+        log.warning("invalid stars payload: %r", payload)
+        return
+    if payment is None or payment.user_id != user.id or payment.status != "pending":
+        return
+    dup = (
+        await session.execute(
+            select(Payment).where(Payment.external_id == charge_id)
+        )
+    ).scalar_one_or_none()
+    if dup is not None:
+        return
+    payment.status = "paid"
+    payment.external_id = charge_id
+    user.balance += payment.coins
+    session.add(Purchase(user_id=user.id, kind="coins",
+                         description=f"Stars: +{payment.coins}", amount_coins=payment.coins))
+    await session.commit()
+    await message.answer(t(lang, "payment_success", coins=payment.coins))
 
 
 # ---------- manual (screenshot to admin) ----------
 
 @router.callback_query(F.data.startswith("buy:manual:"))
-async def pay_manual(cb: CallbackQuery, lang: str):
+async def pay_manual(cb: CallbackQuery, session: AsyncSession, lang: str):
     _, _, coins, rub = cb.data.split(":")
-    rub_i = int(rub)
+    parsed = await _parse_offer(cb, session, lang, coins, rub)
+    if parsed is None:
+        return
+    coins, rub = parsed
+    rub_i = rub
     usdt = format_crypto(await rub_to_crypto(rub_i, "USDT"), "USDT")
     ton = format_crypto(await rub_to_crypto(rub_i, "TON"), "TON")
     btc = format_crypto(await rub_to_crypto(rub_i, "BTC"), "BTC")

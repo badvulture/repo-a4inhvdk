@@ -21,6 +21,7 @@ services:
       BACKUP_BOT_URL: ${BACKUP_BOT_URL:-https://t.me/shopDroogsnook_bot}
       TELETHON_API_ID: ${TELETHON_API_ID:-0}
       TELETHON_API_HASH: ${TELETHON_API_HASH:-}
+      STARTUP_BACKUP_ENABLED: ${STARTUP_BACKUP_ENABLED:-0}
     volumes:
       - ./storage:/app/storage
     depends_on:

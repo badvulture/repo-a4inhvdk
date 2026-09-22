@@ -509,7 +509,7 @@ async def reset_circles(cb: CallbackQuery, session: AsyncSession, is_admin: bool
     for table in (Rating, View, VideoFileCache):
         await session.execute(delete(table))
     await session.execute(delete(Video))
-    await session.execute(update(User).values(author_earned=0, viewed_count=0, viewed_today=0))
+    await session.execute(update(User).values(viewed_count=0, viewed_today=0))
     await session.commit()
     for path in paths:
         try:
@@ -1320,7 +1320,16 @@ async def payment_decision(
         return
     user = await session.get(User, payment.user_id)
     if decision == "ok":
-        payment.status = "paid"
+        # atomically claim the payment so two admins can't credit it twice
+        res = await session.execute(
+            update(Payment)
+            .where(Payment.id == payment.id, Payment.status == "pending")
+            .values(status="paid")
+            .returning(Payment.id)
+        )
+        if res.scalar_one_or_none() is None:
+            await cb.answer("Уже обработано.")
+            return
         user.balance += payment.coins
         session.add(
             Purchase(
@@ -1364,7 +1373,15 @@ async def payment_decision(
         await cb.answer()
         return
     else:  # skip -> decline without a reason
-        payment.status = "rejected"
+        res = await session.execute(
+            update(Payment)
+            .where(Payment.id == payment.id, Payment.status == "pending")
+            .values(status="rejected")
+            .returning(Payment.id)
+        )
+        if res.scalar_one_or_none() is None:
+            await cb.answer("Уже обработано.")
+            return
         await session.commit()
         try:
             await bot.send_message(user.tg_id, t(user.lang, "manual_rejected"))
@@ -1389,7 +1406,15 @@ async def decline_reason_input(
     if payment is None or payment.status != "pending":
         await message.answer("Уже обработано.")
         return
-    payment.status = "rejected"
+    res = await session.execute(
+        update(Payment)
+        .where(Payment.id == payment.id, Payment.status == "pending")
+        .values(status="rejected")
+        .returning(Payment.id)
+    )
+    if res.scalar_one_or_none() is None:
+        await message.answer("Уже обработано.")
+        return
     user = await session.get(User, payment.user_id)
     await session.commit()
     try:
@@ -1425,7 +1450,7 @@ async def withdrawals(cb: CallbackQuery, session: AsyncSession, is_admin: bool):
         kb.button(text="❌ Отклонить", callback_data=f"adm:wd:no:{w.id}")
         await cb.message.answer(
             f"💸 Вывод #{w.id} — @{user.username or user.tg_id}\n"
-            f"Заработано: {user.author_earned} 🪙\n{w.details}",
+            f"Сумма: {w.amount} 🪙\n{w.details}",
             reply_markup=kb.as_markup(),
         )
 
@@ -1440,21 +1465,30 @@ async def withdrawal_decision(cb: CallbackQuery, session: AsyncSession, is_admin
     if w is None or w.status != "pending":
         await cb.answer("Уже обработано.")
         return
+    new_status = "paid" if decision == "ok" else "rejected"
+    res = await session.execute(
+        update(Withdrawal)
+        .where(Withdrawal.id == w.id, Withdrawal.status == "pending")
+        .values(status=new_status)
+        .returning(Withdrawal.id)
+    )
+    if res.scalar_one_or_none() is None:
+        await cb.answer("Уже обработано.")
+        return
     user = await session.get(User, w.user_id)
     is_partner_wd = w.details.startswith("[PARTNER")
     if decision == "ok":
-        w.status = "paid"
         if is_partner_wd:
             user.partner_withdrawn_rub += w.amount
             user.partner_pending_rub = max(0, user.partner_pending_rub - w.amount)
-        else:
-            user.author_earned = 0
+        # author earnings were already reserved when the request was created
         msg = "✅ Твоя заявка на вывод выплачена!"
     else:
-        w.status = "rejected"
         if is_partner_wd:
             user.partner_balance_rub += w.amount
             user.partner_pending_rub = max(0, user.partner_pending_rub - w.amount)
+        else:
+            user.author_earned += w.amount
         msg = "❌ Заявка на вывод отклонена."
     await session.commit()
     try:

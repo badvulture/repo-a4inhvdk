@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import config
@@ -419,7 +419,26 @@ async def set_description(message: Message, state: FSMContext, session: AsyncSes
 async def withdraw(
     message: Message, state: FSMContext, session: AsyncSession, user: User, lang: str, bot: Bot
 ):
-    session.add(Withdrawal(user_id=user.id, amount=user.author_earned, details=message.text[:1000]))
+    amount = user.author_earned
+    # atomically reserve the earnings so a second request can't double-spend them
+    res = await session.execute(
+        text(
+            "UPDATE users SET author_earned = author_earned - :a "
+            "WHERE id = :id AND author_earned >= :a AND :a > 0 "
+            "RETURNING author_earned"
+        ),
+        {"a": amount, "id": user.id},
+    )
+    if res.scalar_one_or_none() is None:
+        await session.commit()
+        min_coins = int(await get_setting(session, "min_withdraw_coins"))
+        await message.answer(
+            t(lang, "withdraw_min", min=min_coins, earned=user.author_earned)
+        )
+        await state.clear()
+        return
+    user.author_earned -= amount
+    session.add(Withdrawal(user_id=user.id, amount=amount, details=message.text[:1000]))
     await session.commit()
     await state.clear()
     await message.answer(t(lang, "withdraw_sent"), reply_markup=main_menu(lang))
@@ -428,7 +447,7 @@ async def withdraw(
             await bot.send_message(
                 admin_id,
                 f"💸 Заявка на вывод от @{user.username or user.tg_id} "
-                f"(заработано {user.author_earned} 🪙):\n{message.text[:1000]}",
+                f"({amount} 🪙):\n{message.text[:1000]}",
             )
         except Exception:
             pass

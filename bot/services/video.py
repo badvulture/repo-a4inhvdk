@@ -14,6 +14,7 @@ MAX_SIZE = 20 * 1024 * 1024
 MAX_DURATION = 60
 NOTE_SIZE = 480
 IMAGE_NOTE_SECONDS = 5
+FFMPEG_TIMEOUT = 120
 
 MAIN_BOT_ID = int(config.bot_token.split(":")[0])
 
@@ -157,10 +158,24 @@ async def to_square_note(src_path: str) -> str | None:
         "-t", str(MAX_DURATION),
         dst,
     ]
+    return await _run_ffmpeg(cmd, dst)
+
+
+async def _run_ffmpeg(cmd: list[str], dst: str) -> str | None:
+    """Run ffmpeg with a bounded timeout; returns dst on success else None."""
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
     )
-    await proc.wait()
+    try:
+        await asyncio.wait_for(proc.communicate(), timeout=FFMPEG_TIMEOUT)
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        try:
+            os.remove(dst)
+        except OSError:
+            pass
+        return None
     if proc.returncode != 0 or not os.path.exists(dst):
         return None
     return dst
@@ -179,10 +194,4 @@ async def to_square_note_from_image(src_path: str) -> str | None:
         "-c:a", "aac", "-shortest",
         dst,
     ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
-    )
-    await proc.wait()
-    if proc.returncode != 0 or not os.path.exists(dst):
-        return None
-    return dst
+    return await _run_ffmpeg(cmd, dst)
