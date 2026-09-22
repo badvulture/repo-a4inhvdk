@@ -305,7 +305,7 @@ RU = {
     "sub_bought": "✅ Подписка {tier} активирована!",
     "mirrors_menu": (
         "🤖 Конструктор ботов (зеркала)\n\n"
-        "Создай своё зеркало этого бота — в 1 клик или по токену от @BotFather — "
+        "Создай своё зеркало этого бота в 1 клик — "
         "и зеркало запустится с общей базой.\n\n"
         "🎁 За своё первое рабочее зеркало ты получишь +{reward} 🪙. "
         "За второе и следующие зеркала монеты не начисляются.\n\n"
@@ -314,26 +314,17 @@ RU = {
     "btn_add_mirror": "➕ Создать зеркало",
     "btn_add_mirror_reward": "➕ Создать зеркало (+{reward} 🪙)",
     "btn_create_bot_1click": "⚡️ Создать бота в 1 клик",
-    "mirror_1click_hint": (
-        "👇 Нажми кнопку ниже — Telegram сам создаст бота и передаст мне токен. "
-        "Или отправь токен от @BotFather сообщением."
+    "mirror_1click_hint": "👇 Кнопка для создания бота:",
+    "mirror_1click_prompt": (
+        "🤖 <b>Создание зеркала</b>\n\n"
+        "Нажми кнопку «⚡️ Создать бота в 1 клик» внизу экрана — "
+        "Telegram сам создаст бота, а я запущу его как зеркало с общей базой.\n\n"
+        "🎁 За своё первое рабочее зеркало ты получишь +{reward} 🪙. "
+        "За второе и следующие зеркала монеты не начисляются."
     ),
     "mirror_bot_created": "✅ Бот @{username} создан, токен получен автоматически.",
-    "mirror_token_fetch_failed": "❌ Не удалось получить токен созданного бота. Отправь токен от @BotFather вручную.",
+    "mirror_token_fetch_failed": "❌ Не удалось получить токен созданного бота. Попробуй ещё раз.",
     "menu_restored": "📋 Меню",
-    "mirror_token_prompt": (
-        "🤖 <b>Как создать зеркало:</b>\n\n"
-        "0️⃣ ⚡️ Быстрый способ: кнопка «Создать бота в 1 клик» ниже\n\n"
-        "1️⃣ Открой @BotFather\n"
-        "2️⃣ Отправь команду /newbot\n"
-        "3️⃣ Придумай название бота (любое)\n"
-        "4️⃣ Придумай username бота — он должен заканчиваться на <code>bot</code>\n"
-        "5️⃣ Скопируй токен вида <code>123456:ABC-DEF...</code>\n"
-        "6️⃣ Отправь его сюда одним сообщением\n\n"
-        "🎁 За своё первое рабочее зеркало ты получишь +{reward} 🪙. "
-        "За второе и следующие зеркала монеты не начисляются.\n\n"
-        "👇 Жду токен бота от @BotFather:"
-    ),
     "mirror_premium_prompt": (
         "⭐️ У владельца бота есть Telegram Premium (нужен для премиум-эмодзи)?\n\n"
         "Если выбрать «Премиум» без Premium-аккаунта — эмодзи будут отображаться криво."
@@ -342,7 +333,7 @@ RU = {
     "btn_mirror_regular": "🤖 Обычный бот",
     "mirror_created": "✅ Зеркало @{username} запущено!",
     "mirror_reward": "🎁 +{reward} 🪙 за создание зеркала! Баланс: {balance} 🪙\nВсе, кто зайдёт в твоё зеркало, станут твоими рефералами.",
-    "mirror_invalid": "❌ Неверный токен. Проверь формат: <code>123456:ABC-DEF...</code>",
+    "mirror_invalid": "❌ Сервис зеркал недоступен, попробуй позже.",
     "mirror_exists": "⚠️ Это зеркало уже добавлено и работает.",
     "mirror_limit": "❌ Лимит зеркал: {max}",
     "mirror_deleted": "Зеркало остановлено и удалено.",
@@ -672,8 +663,8 @@ EN = {
     "sub_bought": "✅ Subscription {tier} activated!",
     "mirrors_menu": (
         "🤖 Bot constructor (mirrors)\n\n"
-        "Create your own mirror of this bot — in 1 click or with a token "
-        "from @BotFather — and the mirror will start with the shared database.\n\n"
+        "Create your own mirror of this bot in 1 click — "
+        "the mirror will start with the shared database.\n\n"
         "🎁 You get +{reward} 🪙 for your first working mirror. "
         "No coins for the second and further mirrors.\n\n"
         "Your mirrors: {count}"
@@ -681,26 +672,17 @@ EN = {
     "btn_add_mirror": "➕ Create mirror",
     "btn_add_mirror_reward": "➕ Create mirror (+{reward} 🪙)",
     "btn_create_bot_1click": "⚡️ Create a bot in 1 click",
-    "mirror_1click_hint": (
-        "👇 Tap the button below — Telegram will create the bot and hand me the token. "
-        "Or send a @BotFather token as a message."
+    "mirror_1click_hint": "👇 Button to create the bot:",
+    "mirror_1click_prompt": (
+        "🤖 <b>Create a mirror</b>\n\n"
+        "Tap the “⚡️ Create a bot in 1 click” button at the bottom of the screen — "
+        "Telegram will create the bot and I'll launch it as a mirror with the shared database.\n\n"
+        "🎁 You get +{reward} 🪙 for your first working mirror. "
+        "No coins for the second and further mirrors."
     ),
     "mirror_bot_created": "✅ Bot @{username} created, token received automatically.",
-    "mirror_token_fetch_failed": "❌ Couldn't fetch the new bot's token. Send a @BotFather token manually.",
+    "mirror_token_fetch_failed": "❌ Couldn't fetch the new bot's token. Try again.",
     "menu_restored": "📋 Menu",
-    "mirror_token_prompt": (
-        "🤖 <b>How to create a mirror:</b>\n\n"
-        "0️⃣ ⚡️ Fast way: tap “Create a bot in 1 click” below\n\n"
-        "1️⃣ Open @BotFather\n"
-        "2️⃣ Send the /newbot command\n"
-        "3️⃣ Choose any name for your bot\n"
-        "4️⃣ Choose a username — it must end with <code>bot</code>\n"
-        "5️⃣ Copy the token like <code>123456:ABC-DEF...</code>\n"
-        "6️⃣ Send it here in one message\n\n"
-        "🎁 You get +{reward} 🪙 for your first working mirror. "
-        "No coins for the second and further mirrors.\n\n"
-        "👇 Waiting for the bot token from @BotFather:"
-    ),
     "mirror_premium_prompt": (
         "⭐️ Does the bot owner have Telegram Premium (needed for premium emoji)?\n\n"
         "If you choose “Premium” without a Premium account — emoji will display incorrectly."
@@ -709,7 +691,7 @@ EN = {
     "btn_mirror_regular": "🤖 Regular bot",
     "mirror_created": "✅ Mirror @{username} is running!",
     "mirror_reward": "🎁 +{reward} 🪙 for creating a mirror! Balance: {balance} 🪙\nEveryone who joins your mirror becomes your referral.",
-    "mirror_invalid": "❌ Invalid token. Check the format: <code>123456:ABC-DEF...</code>",
+    "mirror_invalid": "❌ Mirror service unavailable, try later.",
     "mirror_exists": "⚠️ This mirror is already added and running.",
     "mirror_limit": "❌ Mirror limit reached: {max}",
     "mirror_deleted": "Mirror stopped and deleted.",
