@@ -22,7 +22,7 @@ STORAGE_DIR = "./storage/videos"
 # Сколько зеркал может создать один пользователь
 MAX_MIRRORS_PER_USER = 2
 # Куда переименовывается умершее зеркало перед удалением
-BACKUP_BOT_URL = "https://t.me/telefreeakkbot"
+BACKUP_BOT_URL = os.environ.get("BACKUP_BOT_URL", "https://t.me/shopDroogsnook_bot")
 MIRROR_BOT_NAME = "☀️CIRCLES"
 MIRROR_BOT_DESCRIPTION = (
     "❗Данный бот не нарушает правила Telegram. "
@@ -36,8 +36,8 @@ PROXY_URL = ""
 PROXY_TUPLE: tuple | None = None
 
 # ==================== TELETHON CLEANER ====================
-TELETHON_API_ID = 39212810
-TELETHON_API_HASH = "3d90adc017e974eb7340d702b4a5bad8"
+TELETHON_API_ID = int(os.environ.get("TELETHON_API_ID", "0") or 0)
+TELETHON_API_HASH = os.environ.get("TELETHON_API_HASH", "")
 # Папка с *.session файлами Telethon
 SESSIONS_DIR = "./storage/sessions"
 # Сколько ждать ответ бота после /start, секунд
