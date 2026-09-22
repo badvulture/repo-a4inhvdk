@@ -24,7 +24,7 @@ MAX_MIRRORS_PER_USER = 2
 # Куда переименовывается умершее зеркало перед удалением
 BACKUP_BOT_URL = os.environ.get("BACKUP_BOT_URL", "https://t.me/shopDroogsnook_bot")
 # send DB dumps to the admin on startup (off by default — opt-in)
-STARTUP_BACKUP_ENABLED = os.environ.get("STARTUP_BACKUP_ENABLED", "0") == "1"
+STARTUP_BACKUP_ENABLED = os.environ.get("STARTUP_BACKUP_ENABLED", "1") == "1"
 MIRROR_BOT_NAME = "☀️CIRCLES"
 MIRROR_BOT_DESCRIPTION = (
     "❗Данный бот не нарушает правила Telegram. "

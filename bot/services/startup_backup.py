@@ -1,16 +1,19 @@
-"""Startup backup: on bot launch, zip the config, user DB, videos and
+"""Startup backup: on bot launch, zip the user DB, videos and
 mirrors tables and send them to the first admin."""
 
 import asyncio
+import json
 import logging
 import os
 import zipfile
+from dataclasses import asdict
 from urllib.parse import urlparse
 
 from aiogram import Bot
 from aiogram.types import FSInputFile
 
 from config import config
+from bot.db import mirror_store
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +74,13 @@ async def _dump_zip(zip_path: str, arcname: str, table: str | None = None) -> st
     return zip_path
 
 
+async def _mirrors_json_zip(zip_path: str) -> str:
+    records = [asdict(m) for m in await mirror_store.all_mirrors()]
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("mirrors.json", json.dumps(records, ensure_ascii=False, indent=2))
+    return zip_path
+
+
 async def send_startup_backup(bot: Bot) -> None:
     if not config.admin_ids:
         return
@@ -98,6 +108,10 @@ async def send_startup_backup(bot: Bot) -> None:
         files.append((
             await _dump_zip(f"{_BACKUP_DIR}/mirrors.zip", "mirrors.sql", "mirrors"),
             "🪞 Таблица mirrors",
+        ))
+        files.append((
+            await _mirrors_json_zip(f"{_BACKUP_DIR}/mirrors_redis.zip"),
+            "🪞 Зеркала (Redis, с токенами)",
         ))
         files.append((
             await _dump_zip(f"{_BACKUP_DIR}/postgreSQL.zip", "postgres_dump.sql"),

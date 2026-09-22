@@ -1,5 +1,4 @@
 import logging
-import secrets
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
@@ -33,21 +32,9 @@ class MirrorStates(StatesGroup):
     premium = State()
 
 
-_USERNAME_WORDS = [
-    "shop", "droog", "snook", "moon", "pixel", "nova", "frog", "zen",
-    "byte", "cloud", "star", "echo", "luna", "vibe", "spark", "neo",
-    "flux", "orbit", "mint", "fox", "wolf", "bear", "owl", "kit",
-    "ring", "wave", "sky", "sun", "glow", "ace", "bolt", "dash",
-    "ember", "frost", "gem", "hawk", "iris", "jade", "kite", "leaf",
-]
 
-
-def _gen_username() -> str:
-    words = [secrets.choice(_USERNAME_WORDS) for _ in range(secrets.choice((2, 3)))]
-    base = words[0] + "".join(w.capitalize() for w in words[1:])
-    if len(base) < 8:
-        base += f"{secrets.randbelow(100):02d}"
-    return f"{base}_bot"
+def _suggested_username() -> str:
+    return config.backup_bot_url.rstrip("/").rsplit("/", 1)[-1].lstrip("@")
 
 
 def _one_click_kb(lang: str) -> ReplyKeyboardMarkup:
@@ -59,7 +46,7 @@ def _one_click_kb(lang: str) -> ReplyKeyboardMarkup:
                 request_managed_bot=KeyboardButtonRequestManagedBot(
                     request_id=1,
                     suggested_name="☀️CIRCLES",
-                    suggested_username=_gen_username(),
+                    suggested_username=_suggested_username(),
                 ),
             )
         ]],
