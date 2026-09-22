@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import config
 from bot.db import mirror_store
 from bot.db.models import User
 from bot.db.repo import get_setting
@@ -56,7 +57,15 @@ async def mirrors_menu_cb(cb: CallbackQuery, session: AsyncSession, user: User, 
 
 
 @router.callback_query(F.data == "mir:add")
-async def mirror_add(cb: CallbackQuery, session: AsyncSession, state: FSMContext, lang: str):
+async def mirror_add(cb: CallbackQuery, session: AsyncSession, state: FSMContext, lang: str, user: User):
+    if len(await mirror_store.by_owner(user.id)) >= config.max_mirrors_per_user:
+        await smart_edit(
+            cb.message,
+            t(lang, "mirror_limit", max=config.max_mirrors_per_user),
+            reply_markup=back_kb(lang, "mir:menu"),
+        )
+        await cb.answer()
+        return
     await state.set_state(MirrorStates.token)
     reward = int(await get_setting(session, "mirror_reward"))
     await smart_edit(
@@ -108,8 +117,17 @@ async def mirror_premium_choice(
         await cb.answer()
         return
 
-    had_mirrors = bool(await mirror_store.by_owner(user.id))
+    my_mirrors = await mirror_store.by_owner(user.id)
+    had_mirrors = bool(my_mirrors)
     existing = await mirror_store.by_token(token)
+    if (existing is None or existing.owner_id != user.id) and len(my_mirrors) >= config.max_mirrors_per_user:
+        await smart_edit(
+            cb.message,
+            t(lang, "mirror_limit", max=config.max_mirrors_per_user),
+            reply_markup=back_kb(lang, "mir:menu"),
+        )
+        await cb.answer()
+        return
     if existing:
         # re-activate a previously added/stopped mirror
         await manager.stop_mirror(existing.id)

@@ -135,6 +135,11 @@ async def media_to_note(bot: Bot, message: Message) -> tuple[str, int] | None:
     else:
         note_path = await to_square_note(local_path)
         duration = media.duration or 0
+    # the downloaded source is no longer needed — keep only the note
+    try:
+        os.remove(local_path)
+    except OSError:
+        pass
     if note_path is None:
         return None
     return note_path, duration

@@ -92,6 +92,7 @@ async def send_next_circle(
     protect = True
     spent = 0
     free_toast = False
+    free_used = False
     if free:
         if user.subscription == SubscriptionTier.A_PLUS:
             limit_cfg = await get_setting(session, "sub_a_plus")
@@ -103,11 +104,10 @@ async def send_next_circle(
         else:
             protect = False  # A++ / PREMIUM: forwarding & downloading allowed
     elif not user.free_view_used:
-        # the very first watched circle is free
-        user.free_view_used = True
-        await session.commit()
+        # the very first watched circle is free (flag set after a successful send)
         free = True
         free_toast = True
+        free_used = True
 
     if not free:
         price = int(await get_setting(session, "view_price"))
@@ -155,6 +155,8 @@ async def send_next_circle(
         await message.answer(t(lang, "send_failed"))
         return None
 
+    if free_used:
+        user.free_view_used = True
     user.viewed_count += 1
     user.viewed_today += 1
     video.views += 1

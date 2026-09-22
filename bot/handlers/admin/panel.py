@@ -300,6 +300,7 @@ async def del_user_confirm(cb: CallbackQuery, session: AsyncSession, is_admin: b
     await session.execute(delete(Payment).where(Payment.user_id == uid))
     await session.execute(delete(Withdrawal).where(Withdrawal.user_id == uid))
     await session.execute(delete(SponsorReward).where(SponsorReward.user_id == uid))
+    await session.execute(delete(SponsorHidden).where(SponsorHidden.user_id == uid))
     await session.execute(delete(PromoActivation).where(PromoActivation.user_id == uid))
     await session.execute(delete(Mirror).where(Mirror.owner_id == uid))
     for m in await mirror_store.by_owner(uid, only_active=False):
@@ -612,7 +613,7 @@ async def pool_upload(
         note_file_id=note_file_id,
         local_path=local_path,
         duration=duration,
-        in_pool=False,
+        in_pool=True,
     )
     session.add(video)
     await session.commit()
