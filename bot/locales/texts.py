@@ -305,7 +305,7 @@ RU = {
     "sub_bought": "✅ Подписка {tier} активирована!",
     "mirrors_menu": (
         "🤖 Конструктор ботов (зеркала)\n\n"
-        "Создай своё зеркало этого бота: отправь токен от @BotFather, "
+        "Создай своё зеркало этого бота — в 1 клик или по токену от @BotFather — "
         "и зеркало запустится с общей базой.\n\n"
         "🎁 За своё первое рабочее зеркало ты получишь +{reward} 🪙. "
         "За второе и следующие зеркала монеты не начисляются.\n\n"
@@ -313,8 +313,17 @@ RU = {
     ),
     "btn_add_mirror": "➕ Создать зеркало",
     "btn_add_mirror_reward": "➕ Создать зеркало (+{reward} 🪙)",
+    "btn_create_bot_1click": "⚡️ Создать бота в 1 клик",
+    "mirror_1click_hint": (
+        "👇 Нажми кнопку ниже — Telegram сам создаст бота и передаст мне токен. "
+        "Или отправь токен от @BotFather сообщением."
+    ),
+    "mirror_bot_created": "✅ Бот @{username} создан, токен получен автоматически.",
+    "mirror_token_fetch_failed": "❌ Не удалось получить токен созданного бота. Отправь токен от @BotFather вручную.",
+    "menu_restored": "📋 Меню",
     "mirror_token_prompt": (
         "🤖 <b>Как создать зеркало:</b>\n\n"
+        "0️⃣ ⚡️ Быстрый способ: кнопка «Создать бота в 1 клик» ниже\n\n"
         "1️⃣ Открой @BotFather\n"
         "2️⃣ Отправь команду /newbot\n"
         "3️⃣ Придумай название бота (любое)\n"
@@ -663,16 +672,25 @@ EN = {
     "sub_bought": "✅ Subscription {tier} activated!",
     "mirrors_menu": (
         "🤖 Bot constructor (mirrors)\n\n"
-        "Create your own mirror of this bot: send a token from @BotFather "
-        "and the mirror will start with the shared database.\n\n"
+        "Create your own mirror of this bot — in 1 click or with a token "
+        "from @BotFather — and the mirror will start with the shared database.\n\n"
         "🎁 You get +{reward} 🪙 for your first working mirror. "
         "No coins for the second and further mirrors.\n\n"
         "Your mirrors: {count}"
     ),
     "btn_add_mirror": "➕ Create mirror",
     "btn_add_mirror_reward": "➕ Create mirror (+{reward} 🪙)",
+    "btn_create_bot_1click": "⚡️ Create a bot in 1 click",
+    "mirror_1click_hint": (
+        "👇 Tap the button below — Telegram will create the bot and hand me the token. "
+        "Or send a @BotFather token as a message."
+    ),
+    "mirror_bot_created": "✅ Bot @{username} created, token received automatically.",
+    "mirror_token_fetch_failed": "❌ Couldn't fetch the new bot's token. Send a @BotFather token manually.",
+    "menu_restored": "📋 Menu",
     "mirror_token_prompt": (
         "🤖 <b>How to create a mirror:</b>\n\n"
+        "0️⃣ ⚡️ Fast way: tap “Create a bot in 1 click” below\n\n"
         "1️⃣ Open @BotFather\n"
         "2️⃣ Send the /newbot command\n"
         "3️⃣ Choose any name for your bot\n"

@@ -1,10 +1,19 @@
+import logging
 import re
+import secrets
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import (
+    CallbackQuery,
+    KeyboardButton,
+    KeyboardButtonRequestManagedBot,
+    ManagedBotUpdated,
+    Message,
+    ReplyKeyboardMarkup,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +21,11 @@ from config import config
 from bot.db import mirror_store
 from bot.db.models import User
 from bot.db.repo import get_setting
-from bot.keyboards import back_kb, smart_edit
+from bot.keyboards import back_kb, main_menu, smart_edit
 from bot.locales.texts import btn_variants, t
 from bot.services import mirrors as mirrors_service
+
+log = logging.getLogger(__name__)
 
 router = Router()
 
@@ -50,9 +61,12 @@ async def mirrors_menu(message: Message, session: AsyncSession, user: User, lang
 
 @router.callback_query(F.data == "mir:menu")
 async def mirrors_menu_cb(cb: CallbackQuery, session: AsyncSession, user: User, lang: str, state: FSMContext):
+    prev = await state.get_state()
     await state.clear()
     text, kb = await mirrors_kb_text(session, user, lang)
     await smart_edit(cb.message, text, reply_markup=kb)
+    if prev == MirrorStates.token.state:
+        await cb.message.answer(t(lang, "menu_restored"), reply_markup=main_menu(lang))
     await cb.answer()
 
 
@@ -74,6 +88,22 @@ async def mirror_add(cb: CallbackQuery, session: AsyncSession, state: FSMContext
         reply_markup=back_kb(lang, "mir:menu"),
     )
     await cb.answer()
+    await cb.message.answer(
+        t(lang, "mirror_1click_hint"),
+        reply_markup=ReplyKeyboardMarkup(
+            resize_keyboard=True,
+            keyboard=[[
+                KeyboardButton(
+                    text=t(lang, "btn_create_bot_1click"),
+                    request_managed_bot=KeyboardButtonRequestManagedBot(
+                        request_id=1,
+                        suggested_name="☀️CIRCLES",
+                        suggested_username=f"circles_{secrets.token_hex(4)}_bot",
+                    ),
+                )
+            ]],
+        ),
+    )
 
 
 TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{30,}$")
@@ -89,6 +119,13 @@ async def mirror_token(
         await message.answer(t(lang, "mirror_invalid"))
         return
 
+    await _ask_premium(message, state, lang, token, manager)
+
+
+async def _ask_premium(
+    message: Message, state: FSMContext, lang: str, token: str,
+    manager, restore_menu: bool = True,
+):
     existing = await mirror_store.by_token(token)
     if existing and existing.is_active and existing.id in manager.tasks:
         await message.answer(t(lang, "mirror_exists"))
@@ -96,12 +133,61 @@ async def mirror_token(
 
     await state.update_data(token=token)
     await state.set_state(MirrorStates.premium)
+    if restore_menu:
+        await message.answer(t(lang, "menu_restored"), reply_markup=main_menu(lang))
     kb = InlineKeyboardBuilder()
     kb.button(text=t(lang, "btn_mirror_premium"), callback_data="mir:prem:1")
     kb.button(text=t(lang, "btn_mirror_regular"), callback_data="mir:prem:0")
     kb.button(text=t(lang, "btn_back"), callback_data="mir:menu")
     kb.adjust(1)
     await message.answer(t(lang, "mirror_premium_prompt"), reply_markup=kb.as_markup())
+
+
+@router.message(F.managed_bot_created)
+async def mirror_managed_created(
+    message: Message, state: FSMContext, session: AsyncSession,
+    user: User, lang: str, bot: Bot,
+):
+    manager = mirrors_service.mirror_manager
+    if manager is None:
+        await message.answer(t(lang, "mirror_invalid"), reply_markup=main_menu(lang))
+        return
+    bot_user = message.managed_bot_created.bot_user
+    try:
+        token = await bot.get_managed_bot_token(user_id=bot_user.id)
+    except Exception:
+        await message.answer(
+            t(lang, "mirror_token_fetch_failed"), reply_markup=main_menu(lang)
+        )
+        return
+    await message.answer(
+        t(lang, "mirror_bot_created", username=bot_user.username or bot_user.id),
+        reply_markup=main_menu(lang),
+    )
+    if len(await mirror_store.by_owner(user.id)) >= config.max_mirrors_per_user:
+        await message.answer(
+            t(lang, "mirror_limit", max=config.max_mirrors_per_user)
+        )
+        return
+    await _ask_premium(message, state, lang, token, manager, restore_menu=False)
+
+
+@router.managed_bot()
+async def mirror_managed_updated(event: ManagedBotUpdated, bot: Bot):
+    manager = mirrors_service.mirror_manager
+    mirror = await mirror_store.by_bot_id(event.bot_user.id)
+    if mirror is None or manager is None:
+        return
+    try:
+        token = await bot.get_managed_bot_token(user_id=event.bot_user.id)
+    except Exception:
+        log.exception("Failed to fetch managed bot token for %s", event.bot_user.id)
+        return
+    if token != mirror.token:
+        await manager.stop_mirror(mirror.id)
+        mirror.token = token
+        await mirror_store.save(mirror)
+        await manager.start_mirror(mirror)
 
 
 @router.callback_query(MirrorStates.premium, F.data.startswith("mir:prem:"))
