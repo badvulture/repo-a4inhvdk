@@ -1,0 +1,9 @@
+aiogram==3.30.0
+SQLAlchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+alembic==1.13.2
+redis==5.0.8
+aiohttp==3.10.5
+telethon==1.36.0
+PySocks==1.7.1
+aiocryptopay==0.3.4
