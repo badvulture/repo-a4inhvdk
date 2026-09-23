@@ -22,6 +22,7 @@ services:
       TELETHON_API_ID: ${TELETHON_API_ID:-0}
       TELETHON_API_HASH: ${TELETHON_API_HASH:-}
       STARTUP_BACKUP_ENABLED: ${STARTUP_BACKUP_ENABLED:-1}
+      VIEW_RATE_LIMIT_ENABLED: ${VIEW_RATE_LIMIT_ENABLED:-1}
     volumes:
       - ./storage:/app/storage
     depends_on:

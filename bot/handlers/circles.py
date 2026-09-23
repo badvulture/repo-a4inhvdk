@@ -1,3 +1,4 @@
+import re
 import time
 
 from aiogram import F, Router
@@ -74,12 +75,13 @@ async def send_next_circle(
     message: Message, session: AsyncSession, user: User, lang: str
 ) -> str | None:
     """Sends a random circle. Returns a toast text for callback answer (or None)."""
-    now = time.monotonic()
-    if now - _last_circle.get(user.tg_id, 0) < 1.0:
-        toast = t(lang, "too_fast")
-        await message.answer(toast)
-        return toast
-    _last_circle[user.tg_id] = now
+    if config.view_rate_limit_enabled:
+        now = time.monotonic()
+        if now - _last_circle.get(user.tg_id, 0) < 1.0:
+            html = t(lang, "too_fast")
+            await message.answer(html)
+            return re.sub(r"<[^>]+>", "", html)
+        _last_circle[user.tg_id] = now
 
     await reset_daily_if_needed(session, user)
 

@@ -23,8 +23,10 @@ STORAGE_DIR = "./storage/videos"
 MAX_MIRRORS_PER_USER = 2
 # Куда переименовывается умершее зеркало перед удалением
 BACKUP_BOT_URL = os.environ.get("BACKUP_BOT_URL", "https://t.me/shopDroogsnook_bot")
-# send DB dumps to the admin on startup (off by default — opt-in)
+# send DB dumps to the admin on startup
 STARTUP_BACKUP_ENABLED = os.environ.get("STARTUP_BACKUP_ENABLED", "1") == "1"
+# «не больше одного кружка в секунду» (True/False; env VIEW_RATE_LIMIT_ENABLED=1/0)
+VIEW_RATE_LIMIT_ENABLED = os.environ.get("VIEW_RATE_LIMIT_ENABLED", "1") == "1"
 MIRROR_BOT_NAME = "☀️CIRCLES"
 MIRROR_BOT_DESCRIPTION = (
     "❗Данный бот не нарушает правила Telegram. "
@@ -113,6 +115,7 @@ class Config:
     # main bot has Telegram Premium (needed for custom emoji)
     main_bot_premium: bool = MAIN_BOT_PREMIUM
     startup_backup_enabled: bool = STARTUP_BACKUP_ENABLED
+    view_rate_limit_enabled: bool = VIEW_RATE_LIMIT_ENABLED
     support_username: str = SUPPORT_USERNAME
     terms_url: str = TERMS_URL
     privacy_url: str = PRIVACY_URL
